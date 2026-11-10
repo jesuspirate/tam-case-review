@@ -13,16 +13,28 @@
   --internal-line: #fedf89; --public: #f0f9ff; --public-line: #b9e6fe;
   --shadow: 0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.08);
 }
+/* Dark: follows the system unless the theme button picked Light or Dark. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #0f1419; --panel: #171d24; --ink: #e6e9ee; --muted: #98a2b3; --faint: #667085;
     --line: #262f3a; --line2: #344050; --navy: #a8c1f0; --accent: #528bff; --accent-ink: #ffffff;
     --accent-soft: #1a2740; --amber: #fdb022; --amber-soft: #3a2a0c; --green: #47cd89;
     --green-soft: #0f2e1f; --red: #f97066; --red-soft: #3b1513; --internal: #2a2210;
     --internal-line: #5c4512; --public: #0f2533; --public-line: #1d4a66;
     --shadow: none;
+    color-scheme: dark;
   }
 }
+:root[data-theme="dark"] {
+    --bg: #0f1419; --panel: #171d24; --ink: #e6e9ee; --muted: #98a2b3; --faint: #667085;
+    --line: #262f3a; --line2: #344050; --navy: #a8c1f0; --accent: #528bff; --accent-ink: #ffffff;
+    --accent-soft: #1a2740; --amber: #fdb022; --amber-soft: #3a2a0c; --green: #47cd89;
+    --green-soft: #0f2e1f; --red: #f97066; --red-soft: #3b1513; --internal: #2a2210;
+    --internal-line: #5c4512; --public: #0f2533; --public-line: #1d4a66;
+    --shadow: none;
+  color-scheme: dark;
+}
+.theme-btn { width: 36px; padding: 8px 0; justify-content: center; font-size: 15px; }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
 body { background: var(--bg); color: var(--ink); font: 14px/1.45 -apple-system, BlinkMacSystemFont,
@@ -75,9 +87,11 @@ button { font: inherit; cursor: pointer; }
 .empty li { margin: 4px 0; }
 
 /* review */
-.review { display: grid; grid-template-columns: 300px 1fr; height: calc(100vh - 67px); }
+#review:not(.hidden) { display: flex; flex-direction: column; height: 100vh; }
+#review .top { position: static; flex: none; }
+.review { display: grid; grid-template-columns: 300px 1fr; flex: 1; min-height: 0; }
 .tip { background: var(--accent-soft); color: var(--ink); font-size: 13px; padding: 8px 22px; border-bottom: 1px solid var(--line); }
-.tip + .review { height: calc(100vh - 67px - 37px); }
+.tip { flex: none; }
 a.jira { color: var(--accent); font-weight: 650; text-decoration: none; }
 a.jira:hover { text-decoration: underline; }
 .flag { display: inline-block; margin: 0 6px 4px 0; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600;
@@ -163,7 +177,8 @@ label.fld { display: block; font-weight: 600; font-size: 13px; margin: 12px 0 6p
 .toast.err { background: var(--red); color: #fff; }
 .check { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; cursor: pointer; }
 @media (max-width: 860px) {
-  .review { grid-template-columns: 1fr; height: auto; }
+  #review:not(.hidden) { height: auto; }
+  .review { grid-template-columns: 1fr; }
   .side { max-height: 260px; border-right: 0; border-bottom: 1px solid var(--line); }
   .main { padding: 16px; }
 }
@@ -177,6 +192,7 @@ label.fld { display: block; font-weight: 600; font-size: 13px; margin: 12px 0 6p
     <h1>TAM Case Review</h1>
     <span class="spacer"></span>
     <button class="btn" id="acrossBtn" title="Internal view: every case waiting on us, all accounts">Waiting on us</button>
+    <button class="btn ghost theme-btn" data-theme-btn title="Theme">◐</button>
     <button class="btn ghost" id="settingsBtn" title="Settings">⚙︎ Settings</button>
   </div>
   <div class="home">
@@ -213,6 +229,7 @@ label.fld { display: block; font-weight: 600; font-size: 13px; margin: 12px 0 6p
     <span class="spacer"></span>
     <label class="check" title="Each section in plain priority order instead of split by whose move it is">
       <input type="checkbox" id="byPriority"> Plain priority order</label>
+    <button class="btn ghost theme-btn" data-theme-btn title="Theme">◐</button>
     <button class="btn" id="addExportBtn">Add export</button>
     <button class="btn primary" id="buildBtn">Build page ▸</button>
   </div>
@@ -234,6 +251,25 @@ label.fld { display: block; font-weight: 600; font-size: 13px; margin: 12px 0 6p
 
 <script>
 const TOKEN = "__TOKEN__";
+const PARAMS = new URLSearchParams(location.search);
+
+/* Theme: System (default) -> Light -> Dark, remembered on this computer. ?theme= overrides it once. */
+const THEMES = ["system", "light", "dark"];
+const THEME_ICON = { system: "◐", light: "☀︎", dark: "☾" };
+function getTheme() {
+  const forced = PARAMS.get("theme");
+  if (THEMES.includes(forced)) return forced;
+  try { return localStorage.getItem("theme") || "system"; } catch (e) { return "system"; }
+}
+function applyTheme(t) {
+  if (t === "system") document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme", t);
+  document.querySelectorAll("[data-theme-btn]").forEach((b) => {
+    b.textContent = THEME_ICON[t];
+    b.title = "Theme: " + t[0].toUpperCase() + t.slice(1) + " (click to change)";
+  });
+}
+applyTheme(getTheme());
 const S = { home: null, rv: null, account: null, filter: "needs", queue: [], idx: 0, drafts: {} };
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -636,6 +672,14 @@ async function buildPage() {
 
 /* ---------- wiring ---------- */
 $("#chooseBtn").onclick = () => chooseFile();
+document.querySelectorAll("[data-theme-btn]").forEach((b) => b.onclick = () => {
+  const next = THEMES[(THEMES.indexOf(getTheme()) + 1) % THEMES.length];
+  try { localStorage.setItem("theme", next); } catch (e) {}
+  PARAMS.delete("theme");
+  applyTheme(next);
+  toast("Theme: " + next[0].toUpperCase() + next.slice(1));
+});
+applyTheme(getTheme());
 $("#addExportBtn").onclick = () => chooseFile(S.account);
 $("#settingsBtn").onclick = settings;
 $("#acrossBtn").onclick = async () => {
@@ -665,7 +709,13 @@ document.addEventListener("keydown", (e) => {
   }
 });
 setInterval(() => api("/api/ping").catch(() => {}), 20000);   // keeps the browser fallback alive
-loadHome().catch(fail);
+loadHome().then(async () => {
+  const acct = PARAMS.get("open");
+  if (!acct) return;
+  await openReview(acct);
+  const n = PARAMS.get("case");
+  if (n) { if (!S.queue.includes(n)) setFilter("all"); S.idx = Math.max(0, S.queue.indexOf(n)); render(); }
+}).catch(fail);
 </script>
 </body>
 </html>

@@ -3,6 +3,28 @@
 Turns a ServiceNow case export plus your status updates into a clean page you
 present to the customer. Python 3 standard library only.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/app-dark.png">
+  <img alt="The desktop app reviewing a case: status, people, product area, a linked Jira ticket, heads-up flags and the latest ServiceNow comments" src="docs/images/app-light.png">
+</picture>
+
+Walk through each case, write what the customer should hear (or reuse a ServiceNow
+comment), and build the page you present on the call:
+
+<img alt="The customer page: open cases by type, how long each has been open, and each case's latest update and next step" src="docs/images/customer-page.png" width="720">
+
+Internal signals such as "customer replied, no owner update since", follow-ups due and
+cases needing attention stay in your prep view and never reach the customer page.
+The app has a Light / Dark / System switch (◐ in the top bar).
+
+### Try it with the demo
+
+`demo/` holds a fictional account (Globex, served by the example vendor Acme):
+
+    TAM_DATA_DIR=demo TAM_PROFILE=profiles/example.json python3 callprep.py globex --no-update
+
+In the desktop app, point **Settings → Data folder** at the `demo` folder.
+
 Your organization's names (company, case types, Jira address) go in `profile.json`,
 not the code. Copy [profiles/example.json](profiles/example.json) to `profile.json` and
 edit it. See "Your organization's profile" in [docs/servicenow-view.md](docs/servicenow-view.md).

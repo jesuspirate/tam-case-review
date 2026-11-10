@@ -1,8 +1,10 @@
 # Customer case data - never commit or share these
-exports/
-notes/
-out/
-samples/
+/exports/
+/notes/
+/out/
+/samples/
+# The demo account is fictional and stays in the repo; only its generated pages are ignored
+demo/out/
 # Build output
 app/.venv/
 app/build/

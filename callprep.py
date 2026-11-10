@@ -1650,6 +1650,8 @@ load_profile()
 
 
 def main(argv):
+    if os.environ.get("TAM_DATA_DIR"):     # keep exports/, notes/ and out/ somewhere else (e.g. demo/)
+        set_root(os.environ["TAM_DATA_DIR"])
     flags = {a for a in argv if a.startswith("--")}
     args = [a for a in argv if not a.startswith("--")]
     if flags & {"--help", "-h"} or (args and args[0] in ("help", "-h")):

@@ -1,0 +1,40 @@
+﻿Number,Short description,Highest Priority,State,Substate,Opened,Updated,Assigned to,Customer Contact,Assignment group,Customer Account,Comments and Work notes,Success Package Request Type,Professional Services Type,Component,Sub-Component,Product Version,Has Jira?,Assignee Updated,Non-Assignee Updated,Non-Assignee Updated By,Follow up,Action status
+CS0104512,"Nightly HR sync stops after 50,000 records",P1,Pending Acme,Pending Internal,2026-10-20 09:00:00,2026-11-07 12:00:00,Nora Lindqvist,Dana Whitfield,Support-Tier2,Globex Corporation,"11-07-2026 09:15:00 - Dana Whitfield (Additional comments)
+Hi Nora, the sync failed again last night at the same point. Can engineering share an ETA?
+
+11-05-2026 14:15:00 - Nora Lindqvist (Work notes)
+Jira status changed from: Team Intake to In Development Jira Issue URL: ENG-2481
+
+11-04-2026 11:15:00 - Nora Lindqvist (Additional comments)
+Engineering reproduced the limit and is working on a fix. We will share a build to test.
+",,,Integrations,HR Connector,,1,2026-11-05 11:00:00,2026-11-07 13:00:00,Dana Whitfield,2026-11-10 09:00:00,Needs attention
+CS0104377,Quarterly access review emails go to former managers,P2,Pending Acme,In Progress,2026-10-06 09:00:00,2026-11-06 12:00:00,Tom Becker,Marcus Lee,Support-Tier2,Globex Corporation,"11-06-2026 10:15:00 - Tom Becker (Additional comments)
+We found the cause: manager changes are cached for 30 days. A fix is scheduled for the next release.
+
+11-03-2026 16:15:00 - Tom Becker (Work notes)
+Jira status changed from: Triage to Scheduled Jira Issue URL: ENG-2399
+",,,Access Reviews,Notifications,,1,2026-11-06 11:00:00,2026-11-03 13:00:00,Marcus Lee,2026-11-12 09:00:00,
+CS0103950,"Report export times out for more than 10,000 rows",P2,Pending Customer,Awaiting Info,2026-09-15 09:00:00,2026-11-04 12:00:00,Alex Kim,Dana Whitfield,Support-Tier2,Globex Corporation,"11-04-2026 13:15:00 - Alex Kim (Additional comments)
+Could you send the browser network log (HAR) from the failed export so we can see where it stops?
+",,,Reporting,Exports,,0,2026-11-04 11:00:00,2026-10-30 13:00:00,Dana Whitfield,,Blocked by customer
+CS0104611,Report filters reset after saving a custom view,P3,Pending Acme,In Progress,2026-10-28 09:00:00,2026-11-06 12:00:00,Alex Kim,Ezra Holloway,Support-Tier2,Globex Corporation,"11-06-2026 15:15:00 - Alex Kim (Additional comments)
+Reproduced on our side. A workaround is to save the view twice; we are confirming a fix.
+",,,Reporting,Saved views,,0,2026-11-06 11:00:00,2026-11-02 13:00:00,Ezra Holloway,,
+CS0104702,Scheduled report shows previous day's data,P3,Pending Acme,In Progress,2026-11-05 09:00:00,2026-11-06 12:00:00,Tom Becker,Ezra Holloway,Support-Tier2,Globex Corporation,"11-06-2026 09:15:00 - Tom Becker (Additional comments)
+The schedule runs in UTC. We are checking whether it can follow your time zone.
+",,,Reporting,Schedules,,0,2026-11-06 11:00:00,2026-11-05 13:00:00,Ezra Holloway,,
+CS0102214,Custom fields missing from the audit export,P4,Pending Customer,Awaiting Info,2026-07-21 09:00:00,2026-10-21 12:00:00,Nora Lindqvist,Marcus Lee,Support-Tier2,Globex Corporation,"10-21-2026 10:15:00 - Nora Lindqvist (Additional comments)
+Following up: please confirm which custom fields you need so we can update the export template.
+",,,Reporting,Audit,,0,2026-10-21 11:00:00,2026-10-14 13:00:00,Marcus Lee,,Blocked by customer
+CS0104588,Design review for the new contractor onboarding flow,P3,Pending Acme,In Progress,2026-10-27 09:00:00,2026-11-03 12:00:00,Jordan Reyes,Marcus Lee,Support-Tier2,Globex Corporation,"11-03-2026 11:15:00 - Jordan Reyes (Additional comments)
+Thanks for the walkthrough. Recommendations doc to follow by Thursday.
+",Ask an Expert,,Workflows,Onboarding,,0,2026-11-03 11:00:00,2026-11-03 13:00:00,Marcus Lee,2026-11-13 09:00:00,
+CS0103877,Upgrade planning for the on-premises server,P3,Pending Acme,In Progress,2026-09-10 09:00:00,2026-11-06 12:00:00,Jordan Reyes,Dana Whitfield,Support-Tier2,Globex Corporation,"11-06-2026 08:15:00 - Dana Whitfield (Additional comments)
+Can we lock the upgrade window for the first week of December?
+",,Professional Services,,,Acme Server 8.3p2,0,2026-10-30 11:00:00,2026-11-06 13:00:00,Dana Whitfield,,Needs attention
+CS0104720,Question: API rate limits for bulk updates,P4,New,,2026-11-08 09:00:00,2026-11-08 12:00:00,,Ezra Holloway,Support-Tier2,Globex Corporation,"11-08-2026 17:15:00 - Ezra Holloway (Additional comments)
+What are the API rate limits for bulk user updates?
+",,,Integrations,API,,0,,2026-11-08 13:00:00,Ezra Holloway,,
+CS0103512,Health check for the production environment,P4,Pending Customer,Awaiting Info,2026-08-04 09:00:00,2026-10-28 12:00:00,Jordan Reyes,Marcus Lee,Support-Tier2,Globex Corporation,"10-28-2026 12:15:00 - Jordan Reyes (Additional comments)
+Report delivered. Waiting on your team to pick a date for the readout.
+",Health Check,,Platform,Configuration,,0,2026-10-28 11:00:00,2026-10-20 13:00:00,Marcus Lee,,
