@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TAM Case Review</title>
+<style>
+:root {
+  --bg: #f4f6f9; --panel: #ffffff; --ink: #101828; --muted: #667085; --faint: #98a2b3;
+  --line: #e4e7ec; --line2: #d0d5dd; --navy: #1f3864; --accent: #175cd3; --accent-ink: #ffffff;
+  --accent-soft: #eff4ff; --amber: #b54708; --amber-soft: #fef0c7; --green: #067647;
+  --green-soft: #dcfae6; --red: #b42318; --red-soft: #fee4e2; --internal: #fffaeb;
+  --internal-line: #fedf89; --public: #f0f9ff; --public-line: #b9e6fe;
+  --shadow: 0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1419; --panel: #171d24; --ink: #e6e9ee; --muted: #98a2b3; --faint: #667085;
+    --line: #262f3a; --line2: #344050; --navy: #a8c1f0; --accent: #528bff; --accent-ink: #ffffff;
+    --accent-soft: #1a2740; --amber: #fdb022; --amber-soft: #3a2a0c; --green: #47cd89;
+    --green-soft: #0f2e1f; --red: #f97066; --red-soft: #3b1513; --internal: #2a2210;
+    --internal-line: #5c4512; --public: #0f2533; --public-line: #1d4a66;
+    --shadow: none;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.45 -apple-system, BlinkMacSystemFont,
+  "Segoe UI", system-ui, Roboto, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+button { font: inherit; cursor: pointer; }
+.hidden { display: none !important; }
+.muted { color: var(--muted); }
+.small { font-size: 12.5px; }
+
+/* buttons */
+.btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line2);
+  background: var(--panel); color: var(--ink); border-radius: 8px; padding: 8px 14px; font-weight: 550;
+  white-space: nowrap; }
+.btn:hover { border-color: var(--faint); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.primary:hover { filter: brightness(1.07); }
+.btn.big { padding: 11px 20px; font-size: 15px; border-radius: 10px; }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--muted); }
+.btn.ghost:hover { color: var(--ink); background: var(--line); }
+.btn.link { border: 0; background: none; padding: 0; color: var(--accent); font-weight: 500; }
+.btn:disabled { opacity: .45; cursor: default; filter: none; }
+
+/* top bar */
+.top { display: flex; align-items: center; gap: 14px; padding: 14px 22px; background: var(--panel);
+  border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5; }
+.top h1 { font-size: 18px; margin: 0; color: var(--navy); letter-spacing: -.01em; }
+.top .sub { color: var(--muted); font-size: 13px; }
+.top .spacer { flex: 1; }
+
+/* home */
+.home { max-width: 1040px; margin: 0 auto; padding: 26px 22px 60px; }
+.drop { border: 2px dashed var(--line2); border-radius: 14px; background: var(--panel); padding: 30px;
+  text-align: center; transition: .15s; }
+.drop.over { border-color: var(--accent); background: var(--accent-soft); }
+.drop h2 { margin: 0 0 4px; font-size: 18px; }
+.drop p { margin: 0 0 16px; color: var(--muted); }
+.section-title { display: flex; align-items: baseline; justify-content: space-between; margin: 30px 2px 12px; }
+.section-title h3 { margin: 0; font-size: 15px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+.acct { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px;
+  box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 10px; cursor: pointer;
+  transition: .12s; text-align: left; color: inherit; }
+.acct:hover { border-color: var(--accent); transform: translateY(-1px); }
+.acct .name { font-weight: 700; font-size: 16px; }
+.acct .num { font-size: 26px; font-weight: 700; color: var(--navy); line-height: 1; }
+.acct .meta { color: var(--muted); font-size: 12.5px; }
+.acct .row { display: flex; justify-content: space-between; align-items: flex-end; }
+.empty { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px; }
+.empty ol { margin: 8px 0 0; padding-left: 20px; }
+.empty li { margin: 4px 0; }
+
+/* review */
+.review { display: grid; grid-template-columns: 300px 1fr; height: calc(100vh - 67px); }
+.tip { background: var(--accent-soft); color: var(--ink); font-size: 13px; padding: 8px 22px; border-bottom: 1px solid var(--line); }
+.tip + .review { height: calc(100vh - 67px - 37px); }
+a.jira { color: var(--accent); font-weight: 650; text-decoration: none; }
+a.jira:hover { text-decoration: underline; }
+.flag { display: inline-block; margin: 0 6px 4px 0; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600;
+  color: var(--amber); background: var(--amber-soft); }
+.side { border-right: 1px solid var(--line); background: var(--panel); overflow-y: auto; }
+.tabs { display: flex; gap: 6px; padding: 12px; border-bottom: 1px solid var(--line); position: sticky;
+  top: 0; background: var(--panel); z-index: 2; }
+.tab { flex: 1; border: 1px solid var(--line2); background: var(--panel); border-radius: 8px; padding: 6px;
+  font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.tab.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.grp { padding: 12px 14px 4px; font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; }
+.item { display: block; width: 100%; text-align: left; border: 0; background: none; color: inherit;
+  padding: 8px 14px 8px 12px; border-left: 3px solid transparent; }
+.item:hover { background: var(--bg); }
+.item.on { background: var(--accent-soft); border-left-color: var(--accent); }
+.item .l1 { display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13px; }
+.item .l2 { color: var(--muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.dot.need { background: var(--amber); }
+.dot.ok { background: var(--green); }
+.dot.none { background: var(--line2); }
+.main { overflow-y: auto; padding: 22px 28px 40px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow);
+  max-width: 900px; margin: 0 auto; }
+.card-head { padding: 20px 24px 16px; border-bottom: 1px solid var(--line); }
+.card-head .ids { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.card-head .case-no { font-weight: 700; font-size: 16px; }
+.card-head .desc { font-size: 17px; font-weight: 600; }
+.pos { margin-left: auto; color: var(--muted); font-size: 12.5px; }
+.pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 700; }
+.facts { display: grid; grid-template-columns: 110px 1fr; gap: 6px 14px; padding: 16px 24px; font-size: 13.5px;
+  border-bottom: 1px solid var(--line); }
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; }
+.arrow { color: var(--faint); padding: 0 4px; }
+.block { padding: 16px 24px; border-bottom: 1px solid var(--line); }
+.block h4 { margin: 0 0 10px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.cmt { border: 1px solid var(--public-line); background: var(--public); border-radius: 10px; padding: 10px 12px;
+  margin-bottom: 10px; }
+.cmt.internal { border-color: var(--internal-line); background: var(--internal); }
+.cmt .who { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.cmt .who b { color: var(--ink); font-weight: 650; }
+.cmt .txt { max-height: 7.5em; overflow: hidden; position: relative; white-space: pre-wrap; }
+.cmt .txt.open { max-height: none; }
+.cmt .foot { display: flex; gap: 14px; margin-top: 6px; }
+.yours { font-size: 14px; }
+.yours .date { color: var(--muted); font-size: 12.5px; margin-right: 6px; }
+.history { margin-top: 8px; font-size: 12.5px; color: var(--muted); }
+.history div { padding: 2px 0; }
+.editor { padding: 18px 24px 20px; }
+.editor textarea { width: 100%; min-height: 96px; resize: vertical; border: 1px solid var(--line2);
+  border-radius: 10px; padding: 10px 12px; font: inherit; font-size: 14.5px; background: var(--panel); color: var(--ink); }
+.editor textarea:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+.editor .acts { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.editor .acts .spacer { flex: 1; }
+.kbd { font-size: 11.5px; color: var(--faint); }
+.done-card { text-align: center; padding: 50px 30px; }
+.done-card h2 { margin: 0 0 6px; }
+
+/* modal */
+.scrim { position: fixed; inset: 0; background: rgba(16,24,40,.45); display: flex; align-items: center;
+  justify-content: center; z-index: 20; padding: 20px; }
+.modal { background: var(--panel); border-radius: 14px; width: min(560px, 100%); max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 20px 50px rgba(0,0,0,.25); }
+.modal .mh { padding: 20px 24px 6px; }
+.modal .mh h2 { margin: 0; font-size: 18px; }
+.modal .mb { padding: 10px 24px 6px; }
+.modal .mf { padding: 14px 24px 20px; display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+label.fld { display: block; font-weight: 600; font-size: 13px; margin: 12px 0 6px; }
+.inp { width: 100%; border: 1px solid var(--line2); border-radius: 8px; padding: 9px 11px; font: inherit;
+  background: var(--panel); color: var(--ink); }
+.ok-line { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; }
+.ok-line .ic { width: 22px; height: 22px; border-radius: 50%; background: var(--green-soft); color: var(--green);
+  display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex: none; }
+.prep { background: var(--bg); border-radius: 10px; padding: 10px 14px; margin-top: 10px; }
+.prep ul { margin: 6px 0 0; padding-left: 18px; }
+.path { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12.5px; background: var(--bg);
+  border-radius: 6px; padding: 8px 10px; word-break: break-all; }
+.toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); background: var(--ink);
+  color: var(--panel); padding: 10px 18px; border-radius: 10px; font-weight: 550; z-index: 30;
+  box-shadow: 0 8px 24px rgba(0,0,0,.2); max-width: 80vw; }
+.toast.err { background: var(--red); color: #fff; }
+.check { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; cursor: pointer; }
+@media (max-width: 860px) {
+  .review { grid-template-columns: 1fr; height: auto; }
+  .side { max-height: 260px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .main { padding: 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- HOME -------------------------------------------------------------- -->
+<div id="home">
+  <div class="top">
+    <h1>TAM Case Review</h1>
+    <span class="spacer"></span>
+    <button class="btn" id="acrossBtn" title="Internal view: every case waiting on us, all accounts">Waiting on us</button>
+    <button class="btn ghost" id="settingsBtn" title="Settings">⚙︎ Settings</button>
+  </div>
+  <div class="home">
+    <div class="drop" id="drop">
+      <h2>Add a ServiceNow export</h2>
+      <p>Drag the Excel file here, or choose it from your Downloads.</p>
+      <button class="btn primary big" id="chooseBtn">Choose export file…</button>
+      <input type="file" id="fileInput" accept=".xlsx,.xlsm,.csv" class="hidden">
+    </div>
+    <div class="section-title"><h3>Your accounts</h3><span class="muted small" id="acctHint"></span></div>
+    <div class="grid" id="accounts"></div>
+    <div class="empty hidden" id="emptyState">
+      <b>No accounts yet.</b> Here's how to start:
+      <ol>
+        <li>In ServiceNow, press <b>Create a new list</b>.</li>
+        <li>Select a list you already have for your customer, or create one from scratch.</li>
+        <li>Add a condition: <b>Customer account</b> is <b>your customer</b>.</li>
+        <li>In <b>Select columns</b>, add the columns you want (more columns give a better review), then press <b>Create</b>.</li>
+        <li>In the list shown, press <b>Export</b>.</li>
+        <li>Drop the downloaded file in the box above and name the account (for example <i>acme</i>).</li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+<!-- REVIEW ------------------------------------------------------------ -->
+<div id="review" class="hidden">
+  <div class="top">
+    <button class="btn ghost" id="backBtn">← Accounts</button>
+    <div>
+      <h1 id="rvTitle"></h1>
+      <div class="sub" id="rvSub"></div>
+    </div>
+    <span class="spacer"></span>
+    <label class="check" title="Each section in plain priority order instead of split by whose move it is">
+      <input type="checkbox" id="byPriority"> Plain priority order</label>
+    <button class="btn" id="addExportBtn">Add export</button>
+    <button class="btn primary" id="buildBtn">Build page ▸</button>
+  </div>
+  <div class="tip hidden" id="rvTip"></div>
+  <div class="review">
+    <aside class="side">
+      <div class="tabs">
+        <button class="tab" data-filter="needs" id="tabNeeds"></button>
+        <button class="tab" data-filter="all" id="tabAll"></button>
+      </div>
+      <div id="list"></div>
+    </aside>
+    <main class="main" id="main"></main>
+  </div>
+</div>
+
+<div id="modalRoot"></div>
+<div id="toastRoot"></div>
+
+<script>
+const TOKEN = "__TOKEN__";
+const S = { home: null, rv: null, account: null, filter: "needs", queue: [], idx: 0, drafts: {} };
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const fmt = (iso) => { if (!iso) return ""; const [y, m, d] = iso.split("-").map(Number); return MONTHS[m-1] + " " + d; };
+const PRI = { P1: ["#b42318","#fee4e2"], P2: ["#b54708","#fef0c7"], P3: ["#175cd3","#e0eaff"], P4: ["#475467","#eaecf0"], P5: ["#475467","#eaecf0"] };
+
+async function api(path, body, extraHeaders) {
+  const opts = { headers: Object.assign({ "X-Token": TOKEN }, extraHeaders || {}) };
+  if (body !== undefined) {
+    opts.method = "POST";
+    if (body instanceof ArrayBuffer) opts.body = body;
+    else { opts.body = JSON.stringify(body); opts.headers["Content-Type"] = "application/json"; }
+  }
+  const res = await fetch(path, opts);
+  const data = await res.json().catch(() => ({ error: "No answer from the app." }));
+  if (!res.ok) throw new Error(data.error || ("Error " + res.status));
+  return data;
+}
+function toast(msg, err) {
+  const el = document.createElement("div");
+  el.className = "toast" + (err ? " err" : "");
+  el.textContent = msg;
+  $("#toastRoot").replaceChildren(el);
+  setTimeout(() => el.remove(), err ? 6000 : 2600);
+}
+const fail = (e) => toast(e.message || String(e), true);
+
+function modal(html, onMount) {
+  const root = $("#modalRoot");
+  root.innerHTML = '<div class="scrim"><div class="modal">' + html + "</div></div>";
+  const scrim = root.firstChild;
+  scrim.addEventListener("mousedown", (e) => { if (e.target === scrim) closeModal(); });
+  if (onMount) onMount(scrim.firstChild);
+}
+const closeModal = () => { $("#modalRoot").innerHTML = ""; };
+
+/* ---------- home ---------- */
+async function loadHome() {
+  S.home = await api("/api/home");
+  $("#acrossBtn").textContent = "Waiting on " + S.home.vendor;
+  $("#acrossBtn").title = "Internal view: every case waiting on " + S.home.vendor + ", all accounts";
+  const box = $("#accounts");
+  box.innerHTML = "";
+  $("#emptyState").classList.toggle("hidden", S.home.accounts.length > 0);
+  $("#acctHint").textContent = S.home.accounts.length ? "Click an account to review it" : "";
+  for (const a of S.home.accounts) {
+    const el = document.createElement("button");
+    el.className = "acct";
+    el.innerHTML = '<div class="name">' + esc(a.title) + '</div>' +
+      '<div class="row"><div><div class="num">' + (a.open ?? "?") + '</div><div class="meta">open cases</div></div>' +
+      '<div class="meta" style="text-align:right">Latest export<br><b style="color:var(--ink)">' + esc(fmt(a.latest_date)) + "</b></div></div>";
+    el.onclick = () => openReview(a.id);
+    box.appendChild(el);
+  }
+}
+
+function guessAccount(filename) {
+  const tok = filename.toLowerCase().split(/[_\-. ]/)[0];
+  return S.home.accounts.some((a) => a.id === tok) ? tok : "";
+}
+function guessDate(filename) {
+  const stem = filename.replace(/\.[^.]+$/, "");
+  let m = stem.match(/(20\d\d)[-_.](\d{1,2})[-_.](\d{1,2})/);
+  const pad = (n) => String(n).padStart(2, "0");
+  const today = new Date();
+  if (m) return m[1] + "-" + pad(m[2]) + "-" + pad(m[3]);
+  m = stem.match(/(\d{1,2})[-_.](\d{1,2})(?:[-_.](\d{2,4}))?(?!.*\d)/);
+  if (m) {
+    let y = m[3] ? Number(m[3]) + (m[3].length === 2 ? 2000 : 0) : today.getFullYear();
+    const mo = Number(m[1]), d = Number(m[2]);
+    if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31) {
+      if (!m[3] && new Date(y, mo - 1, d) > today) y -= 1;
+      return y + "-" + pad(mo) + "-" + pad(d);
+    }
+  }
+  return today.getFullYear() + "-" + pad(today.getMonth() + 1) + "-" + pad(today.getDate());
+}
+
+// source: {file: File} (upload) or {path: "..."} (native dialog)
+function importDialog(source, presetAccount) {
+  const name = source.file ? source.file.name : source.path.split(/[\\/]/).pop();
+  const guess = presetAccount || guessAccount(name);
+  const opts = S.home.accounts.map((a) => '<option value="' + esc(a.id) + '"' + (a.id === guess ? " selected" : "") + ">" + esc(a.title) + "</option>").join("");
+  modal(
+    '<div class="mh"><h2>Add export</h2><div class="muted small" style="margin-top:4px">' + esc(name) + "</div></div>" +
+    '<div class="mb">' +
+    '<label class="fld">Which account is this for?</label>' +
+    '<select class="inp" id="impAcct">' + opts + '<option value="__new"' + (guess ? "" : " selected") + '>New account…</option></select>' +
+    '<div id="newWrap"><label class="fld">New account name</label><input class="inp" id="impNew" placeholder="e.g. acme"></div>' +
+    '<label class="fld">Date the export was taken</label><input class="inp" type="date" id="impDate" value="' + guessDate(name) + '">' +
+    '<div class="muted small" style="margin-top:6px">Each review compares the newest export with the one before it.</div>' +
+    "</div>" +
+    '<div class="mf"><button class="btn" id="impCancel">Cancel</button><button class="btn primary" id="impGo">Add &amp; start review</button></div>',
+    (m) => {
+      const sel = m.querySelector("#impAcct"), wrap = m.querySelector("#newWrap");
+      const sync = () => { wrap.classList.toggle("hidden", sel.value !== "__new"); if (sel.value === "__new") m.querySelector("#impNew").focus(); };
+      sel.onchange = sync; sync();
+      m.querySelector("#impCancel").onclick = closeModal;
+      m.querySelector("#impGo").onclick = async () => {
+        const account = sel.value === "__new" ? m.querySelector("#impNew").value.trim() : sel.value;
+        const date = m.querySelector("#impDate").value;
+        if (!account) return toast("Give the account a name.", true);
+        try {
+          let res;
+          if (source.file) {
+            const buf = await source.file.arrayBuffer();
+            res = await api("/api/import", buf, { "X-Filename": encodeURIComponent(name), "X-Account": encodeURIComponent(account), "X-Date": date });
+          } else {
+            res = await api("/api/import-path", { path: source.path, account, date });
+          }
+          closeModal();
+          toast(res.duplicate ? "That export was already added (" + res.saved_as + ")"
+                              : "Added " + res.open + " open cases to " + res.account.toUpperCase());
+          await loadHome();
+          openReview(res.account);
+        } catch (e) { fail(e); }
+      };
+    });
+}
+
+async function chooseFile(presetAccount) {
+  if (S.home && S.home.native) {
+    try {
+      const r = await api("/api/pick", { kind: "file" });
+      if (r.path) importDialog({ path: r.path }, presetAccount);
+    } catch (e) { fail(e); }
+  } else {
+    const inp = $("#fileInput");
+    inp.onchange = () => { if (inp.files[0]) importDialog({ file: inp.files[0] }, presetAccount); inp.value = ""; };
+    inp.click();
+  }
+}
+
+function settings() {
+  modal(
+    '<div class="mh"><h2>Settings</h2></div><div class="mb">' +
+    '<label class="fld">Data folder</label><div class="path" id="dd">' + esc(S.home.data_dir) + "</div>" +
+    '<div class="muted small" style="margin-top:6px">Exports, your status updates and the finished pages are kept here, in <b>exports</b>, <b>notes</b> and <b>out</b>. These hold customer case data, so keep them on your own machine.</div>' +
+    '<div style="display:flex;gap:10px;margin-top:12px"><button class="btn" id="ddOpen">Open folder</button><button class="btn" id="ddChange">Change…</button></div>' +
+    '<div id="ddManual" class="hidden"><label class="fld">Folder path</label><input class="inp" id="ddPath" value="' + esc(S.home.data_dir) + '"><div style="margin-top:8px"><button class="btn primary" id="ddSave">Use this folder</button></div></div>' +
+    '<div class="muted small" style="margin-top:18px">TAM Case Review ' + esc(S.home.version) +
+      " · profile: " + esc(S.home.profile || "none (neutral defaults)") + "</div>" +
+    '</div><div class="mf"><button class="btn primary" id="setDone">Done</button></div>',
+    (m) => {
+      m.querySelector("#setDone").onclick = closeModal;
+      m.querySelector("#ddOpen").onclick = () => api("/api/open", {}).catch(fail);
+      const setDir = async (path) => {
+        try { await api("/api/data-dir", { path }); closeModal(); toast("Data folder changed"); loadHome(); } catch (e) { fail(e); }
+      };
+      m.querySelector("#ddChange").onclick = async () => {
+        if (S.home.native) {
+          try { const r = await api("/api/pick", { kind: "folder" }); if (r.path) setDir(r.path); } catch (e) { fail(e); }
+        } else m.querySelector("#ddManual").classList.remove("hidden");
+      };
+      m.querySelector("#ddSave").onclick = () => setDir(m.querySelector("#ddPath").value);
+    });
+}
+
+function showColumns(missing) {
+  modal('<div class="mh"><h2>Columns to add</h2><div class="muted small" style="margin-top:4px">Add these to the ServiceNow list you export from. Blank columns are fine.</div></div>' +
+    '<div class="mb"><table style="width:100%;border-collapse:collapse;font-size:13.5px">' +
+    missing.map((m) => '<tr><td style="padding:6px 0;border-bottom:1px solid var(--line)"><b>' + esc(m.column) + '</b></td><td class="muted" style="padding:6px 0 6px 12px;border-bottom:1px solid var(--line)">' + esc(m.why) + "</td></tr>").join("") +
+    '</table><div class="muted small" style="margin-top:12px">In ServiceNow: <b>Create a new list</b> → select your customer\'s list (or create one from scratch) → condition <b>Customer account</b> is your customer → add these under <b>Select columns</b> → <b>Create</b>. Then, in the list shown, press <b>Export</b> and drop the file here.</div></div>' +
+    '<div class="mf"><button class="btn primary" id="colDone">Got it</button></div>', (m) => { m.querySelector("#colDone").onclick = closeModal; });
+}
+
+/* ---------- review ---------- */
+async function openReview(account, keep) {
+  try {
+    S.rv = await api("/api/review?account=" + encodeURIComponent(account) + "&by_priority=" + ($("#byPriority").checked ? 1 : 0));
+  } catch (e) { return fail(e); }
+  if (!keep || S.account !== account) {
+    S.account = account;
+    S.filter = S.rv.cases.some((c) => c.needs) ? "needs" : "all";
+    S.drafts = {};
+    makeQueue();
+    S.idx = 0;
+  }
+  $("#home").classList.add("hidden");
+  $("#review").classList.remove("hidden");
+  const rv = S.rv, k = rv.counts;
+  $("#rvTitle").textContent = rv.title;
+  let sub = k.open + " open · export " + fmt(rv.as_of);
+  if (k.compared) sub += " vs " + fmt(rv.prev_date) + " · " + k.new + " new · " + k.resolved + " resolved · " + k.changed + " changed status";
+  $("#rvSub").textContent = sub;
+  const tip = $("#rvTip");
+  if (rv.missing.length) {
+    const cols = rv.missing.map((m) => m.column);
+    const why = [...new Set(rv.missing.map((m) => m.why))];
+    tip.innerHTML = "<b>Get more out of this review:</b> add " + esc(cols.slice(0, 4).join(", ")) +
+      (cols.length > 4 ? " and " + (cols.length - 4) + " more" : "") + " to your ServiceNow view for " + esc(why.slice(0, 3).join(", ")) +
+      '. <button class="btn link" id="tipMore">Which columns?</button> <button class="btn link" id="tipHide" style="color:var(--muted)">Hide</button>';
+    tip.classList.remove("hidden");
+    $("#tipHide").onclick = () => { tip.classList.add("hidden"); try { localStorage.setItem("tipHidden:" + rv.account, cols.join("|")); } catch (e) {} };
+    $("#tipMore").onclick = () => showColumns(rv.missing);
+    try { if (localStorage.getItem("tipHidden:" + rv.account) === cols.join("|")) tip.classList.add("hidden"); } catch (e) {}
+  } else tip.classList.add("hidden");
+  render();
+}
+function makeQueue() {
+  const cs = S.rv.cases.filter((c) => S.filter === "all" || c.needs);
+  S.queue = cs.map((c) => c.number);
+}
+const byNumber = (n) => S.rv.cases.find((c) => c.number === n);
+
+function render() {
+  const rv = S.rv;
+  const needN = rv.cases.filter((c) => c.needs).length;
+  $("#tabNeeds").textContent = "Needs update (" + needN + ")";
+  $("#tabAll").textContent = "All cases (" + rv.cases.length + ")";
+  $("#tabNeeds").classList.toggle("on", S.filter === "needs");
+  $("#tabAll").classList.toggle("on", S.filter === "all");
+
+  const list = $("#list");
+  list.innerHTML = "";
+  let lastType = null;
+  S.queue.forEach((n, i) => {
+    const c = byNumber(n);
+    if (!c) return;
+    if (c.type !== lastType) {
+      lastType = c.type;
+      const g = document.createElement("div");
+      g.className = "grp"; g.style.color = c.type_color; g.textContent = c.type;
+      list.appendChild(g);
+    }
+    const b = document.createElement("button");
+    b.className = "item" + (i === S.idx ? " on" : "");
+    const dot = c.updated_today ? "ok" : c.needs ? "need" : "none";
+    const tip = c.updated_today ? "Updated today" : c.needs ? "Needs an update" : "Up to date";
+    b.innerHTML = '<div class="l1"><span class="dot ' + dot + '" title="' + tip + '"></span>' + esc(c.number) +
+      (c.priority ? ' <span class="pill" style="color:' + PRI[c.priority]?.[0] + ";background:" + PRI[c.priority]?.[1] + '">' + esc(c.priority) + "</span>" : "") +
+      (c.new ? ' <span class="pill" style="color:var(--green);background:var(--green-soft)">NEW</span>' : "") +
+      (c.flags.length ? ' <span class="pill" style="color:var(--amber);background:var(--amber-soft)" title="' + esc(c.flags.join(" · ")) + '">!</span>' : "") +
+      '</div><div class="l2">' + esc(c.description) + "</div>";
+    b.onclick = () => { saveDraft(); S.idx = i; render(); };
+    list.appendChild(b);
+  });
+  if (!S.queue.length) list.innerHTML = '<div class="muted small" style="padding:16px">Nothing needs an update. Switch to <b>All cases</b> to review anyway.</div>';
+  renderCard();
+}
+
+function renderCard() {
+  const main = $("#main");
+  if (S.idx >= S.queue.length || !S.queue.length) {
+    const missing = S.rv.cases.filter((c) => !c.notes.length).length;
+    main.innerHTML = '<div class="card done-card"><h2>' + (S.queue.length ? "All done" : "Nothing to update") + "</h2>" +
+      '<p class="muted">' + (missing ? missing + " case" + (missing === 1 ? " has" : "s have") + " no status update yet. " : "") +
+      "Build the page to present it.</p>" +
+      '<button class="btn primary big" id="doneBuild">Build page ▸</button>' +
+      (S.filter === "needs" ? '<div style="margin-top:14px"><button class="btn link" id="doneAll">Review all cases</button></div>' : "") + "</div>";
+    $("#doneBuild").onclick = buildPage;
+    const da = $("#doneAll"); if (da) da.onclick = () => setFilter("all");
+    return;
+  }
+  const c = byNumber(S.queue[S.idx]);
+  const pri = PRI[c.priority];
+  let state = esc(c.state || "—");
+  if (c.state_was) state = esc(c.state_was) + '<span class="arrow">→</span><b>' + esc(c.state) + "</b>";
+  if (c.substate) state += ' <span class="muted">· ' + esc(c.substate) + "</span>";
+  const whose = c.side === "customer" ? ' <span class="pill" style="color:var(--amber);background:var(--amber-soft)">Customer\'s move</span>'
+              : c.side === "vendor" ? ' <span class="pill" style="color:var(--accent);background:var(--accent-soft)">Our move</span>' : "";
+  const people = [c.contact && esc(c.contact) + ' <span class="muted">(' + esc(S.rv.title) + ")</span>",
+                  c.owner && esc(c.owner) + ' <span class="muted">(' + esc(S.home.vendor) + ')</span>'].filter(Boolean).join(" · ");
+  let opened = "";
+  if (c.opened) opened = fmt(c.opened) + ' <span class="muted">· ' + c.age + " day" + (c.age === 1 ? "" : "s") + (c.last_activity ? " · last activity " + fmt(c.last_activity) : "") + "</span>";
+
+  const comments = c.comments.map((e, i) =>
+    '<div class="cmt ' + (e.kind === "internal" ? "internal" : "") + '">' +
+    '<div class="who"><span class="pill" style="' + (e.kind === "internal" ? "color:var(--amber);background:var(--amber-soft)" : "color:var(--accent);background:var(--accent-soft)") + '">' +
+    (e.kind === "internal" ? "Internal note" : "Public comment") + "</span><b>" + esc(e.author) + "</b>" + esc(fmt(e.when)) + "</div>" +
+    '<div class="txt" id="ct' + i + '">' + esc(e.text) + "</div>" +
+    '<div class="foot">' + (e.text.length > 320 ? '<button class="btn link" data-more="' + i + '">Show more</button>' : "") +
+    (e.line ? '<button class="btn link" data-use="' + i + '">Use this as my update' + (e.kind === "internal" ? " (internal!)" : "") + "</button>" : "") +
+    "</div></div>").join("") || '<div class="muted">No comments or work notes in this export.</div>';
+
+  const top = c.notes[0];
+  const yours = top ? '<div class="yours"><span class="date">' + esc(fmt(top.date) || "undated") + "</span>" + esc(top.text) +
+      (top.internal ? ' <span class="pill" style="color:var(--amber);background:var(--amber-soft)">copied internal note</span>' : "") + "</div>" +
+      (c.notes.length > 1 ? '<div class="history">' + c.notes.slice(1, 4).map((n) => "<div>" + esc(fmt(n.date)) + " · " + esc(n.text) + "</div>").join("") + "</div>" : "") +
+      '<div style="margin-top:8px"><button class="btn link" id="undo" style="color:var(--muted);font-size:12.5px">Remove this update</button></div>'
+    : '<div class="muted">No update yet.</div>';
+
+  const fill = c.fill ? c.fill.replace(/^\d+\/\d+ - (\[[^\]]+\] )?/, "") : "";
+  main.innerHTML =
+    '<div class="card">' +
+    '<div class="card-head"><div class="ids"><span class="case-no">' + esc(c.number) + "</span>" +
+    (pri ? '<span class="pill" style="color:' + pri[0] + ";background:" + pri[1] + '">' + esc(c.priority) + "</span>" : "") +
+    '<span class="pill" style="color:#fff;background:' + esc(c.type_color) + '">' + esc(c.type) + "</span>" +
+    (c.new ? '<span class="pill" style="color:var(--green);background:var(--green-soft)">NEW since last export</span>' : "") +
+    '<span class="pos">' + (S.idx + 1) + " of " + S.queue.length + "</span></div>" +
+    '<div class="desc">' + esc(c.description) + "</div></div>" +
+    '<dl class="facts"><dt>Status</dt><dd>' + state + whose + "</dd>" +
+    (people ? "<dt>People</dt><dd>" + people + "</dd>" : "") +
+    (c.group ? '<dt>Group</dt><dd>' + esc(c.group) + "</dd>" : "") +
+    (opened ? "<dt>Opened</dt><dd>" + opened + "</dd>" : "") +
+    (c.area ? "<dt>Area</dt><dd>" + esc(c.area) + "</dd>" : "") +
+    (c.tenant ? "<dt>Tenant</dt><dd>" + esc(c.tenant) + "</dd>" : "") +
+    (c.project ? "<dt>Project</dt><dd>" + esc(c.project) + "</dd>" : "") +
+    (c.impact || c.urgency ? "<dt>Impact</dt><dd>" + esc([c.impact, c.urgency && "urgency " + c.urgency.toLowerCase()].filter(Boolean).join(" · ")) + "</dd>" : "") +
+    (c.jira && c.jira[0] ? "<dt>Jira</dt><dd>" + (c.jira_url ? '<a href="#" class="jira" data-url="' + esc(c.jira_url) + '" title="Open in Jira">' + esc(c.jira[0]) + " ↗</a>" : "<b>" + esc(c.jira[0]) + "</b>") +
+                (c.jira[1] ? " · " + esc(c.jira[1]) : "") + "</dd>"
+     : c.jira ? '<dt>Jira</dt><dd>Engineering <span class="muted">· ticket number not in the export</span></dd>' : "") +
+    (c.follow_up ? "<dt>Follow-up</dt><dd>" + esc(fmt(c.follow_up)) + "</dd>" : "") +
+    (c.flags.length ? '<dt>Heads-up</dt><dd>' + c.flags.map((f) => '<span class="flag">' + esc(f) + "</span>").join("") + "</dd>" : "") +
+    "</dl>" +
+    (c.details ? '<div class="block"><h4>Description</h4><div class="cmt" style="background:var(--bg);border-color:var(--line)"><div class="txt" id="cdet">' + esc(c.details) + "</div>" +
+        (c.details.length > 320 ? '<div class="foot"><button class="btn link" id="detMore">Show more</button></div>' : "") + "</div></div>" : "") +
+    '<div class="block"><h4>Latest in ServiceNow</h4>' + comments + "</div>" +
+    '<div class="block"><h4>Your last update (shown on the page)</h4>' + yours + "</div>" +
+    '<div class="editor"><label class="fld" style="margin-top:0" for="upd">Today\'s update</label>' +
+    '<textarea id="upd" placeholder="What should the customer hear about this case?"></textarea>' +
+    '<div class="acts">' +
+    (c.fill ? '<button class="btn" id="useFill" title="' + esc(fill) + '">Use latest public comment</button>' : "") +
+    '<span class="spacer"></span><span class="kbd">' + (navigator.platform.includes("Mac") ? "⌘" : "Ctrl") + "+Enter saves</span>" +
+    '<button class="btn" id="skip">Skip</button>' +
+    '<button class="btn primary" id="save">Save &amp; next</button></div>' +
+    '<div class="muted small" style="margin-top:10px">Comments and work notes only reach the page if you use them.</div></div>' +
+    "</div>";
+
+  const ta = $("#upd");
+  ta.value = S.drafts[c.number] || "";
+  ta.focus();
+  main.querySelectorAll("[data-more]").forEach((b) => b.onclick = () => {
+    const t = $("#ct" + b.dataset.more); t.classList.toggle("open");
+    b.textContent = t.classList.contains("open") ? "Show less" : "Show more";
+  });
+  main.querySelectorAll("[data-use]").forEach((b) => b.onclick = () => saveLine(c, c.comments[b.dataset.use].line));
+  if (c.fill) $("#useFill").onclick = () => saveLine(c, c.fill);
+  main.querySelectorAll("a.jira").forEach((a) => a.onclick = (e) => {
+    e.preventDefault();
+    api("/api/open-url", { url: a.dataset.url }).catch(fail);
+  });
+  const dm = $("#detMore");
+  if (dm) dm.onclick = () => { const t = $("#cdet"); t.classList.toggle("open"); dm.textContent = t.classList.contains("open") ? "Show less" : "Show more"; };
+  $("#skip").onclick = () => { saveDraft(); next(); };
+  $("#save").onclick = () => saveText(c);
+  const undo = $("#undo");
+  if (undo) undo.onclick = async () => {
+    try { await api("/api/note-remove", { account: S.account, number: c.number }); await openReview(S.account, true); toast("Update removed"); } catch (e) { fail(e); }
+  };
+  main.scrollTop = 0;
+}
+
+function saveDraft() {
+  const ta = $("#upd");
+  const n = S.queue[S.idx];
+  if (ta && n) S.drafts[n] = ta.value;
+}
+function next() { S.idx = Math.min(S.idx + 1, S.queue.length); render(); }
+async function saveText(c) {
+  const text = $("#upd").value.trim();
+  if (!text) { toast("Type an update, use a comment, or press Skip.", true); return; }
+  try {
+    await api("/api/note", { account: S.account, number: c.number, text });
+    delete S.drafts[c.number];
+    await openReview(S.account, true);
+    next();
+  } catch (e) { fail(e); }
+}
+async function saveLine(c, line) {
+  try {
+    await api("/api/note", { account: S.account, number: c.number, line });
+    delete S.drafts[c.number];
+    await openReview(S.account, true);
+    toast("Saved from ServiceNow");
+    next();
+  } catch (e) { fail(e); }
+}
+function setFilter(f) {
+  saveDraft();
+  S.filter = f; makeQueue(); S.idx = 0; render();
+}
+
+async function buildPage() {
+  saveDraft();
+  const btn = $("#buildBtn"); btn.disabled = true;
+  try {
+    const r = await api("/api/build", { account: S.account, by_priority: $("#byPriority").checked });
+    const mod = navigator.platform.includes("Mac") ? "⌘" : "Ctrl+";
+    modal(
+      '<div class="mh"><h2>Page ready</h2></div><div class="mb">' +
+      '<div class="ok-line"><span class="ic">✓</span><div><b>The page opened in your browser.</b><div class="muted small">Present from there, or copy it all (' + mod + "A, " + mod + "C) and paste into OneNote.</div></div></div>" +
+      '<div class="ok-line"><span class="ic">✓</span><div><b>' + (r.copied ? "Gainsight text copied to the clipboard." : "Gainsight text saved.") + '</b><div class="muted small">Paste it into the Gainsight activity note.</div></div></div>' +
+      (r.prep.length ? '<div class="prep"><b>Before the call</b> <span class="muted small">(not on the page)</span><ul>' + r.prep.map((p) => "<li>" + esc(p) + "</li>").join("") + "</ul></div>" : "") +
+      '</div><div class="mf">' +
+      '<button class="btn" id="rCopy">Copy Gainsight text again</button>' +
+      '<button class="btn" id="rFolder">Show files</button>' +
+      '<button class="btn" id="rOpen">Open page again</button>' +
+      '<button class="btn primary" id="rDone">Done</button></div>',
+      (m) => {
+        m.querySelector("#rDone").onclick = closeModal;
+        m.querySelector("#rOpen").onclick = () => api("/api/open", { path: r.html }).catch(fail);
+        m.querySelector("#rFolder").onclick = () => api("/api/open", { path: r.html, reveal: true }).catch(fail);
+        m.querySelector("#rCopy").onclick = () => api("/api/copy", { path: r.txt }).then(() => toast("Copied")).catch(fail);
+      });
+  } catch (e) { fail(e); }
+  btn.disabled = false;
+}
+
+/* ---------- wiring ---------- */
+$("#chooseBtn").onclick = () => chooseFile();
+$("#addExportBtn").onclick = () => chooseFile(S.account);
+$("#settingsBtn").onclick = settings;
+$("#acrossBtn").onclick = async () => {
+  try { await api("/api/across", {}); toast("Opened in your browser"); } catch (e) { fail(e); }
+};
+$("#backBtn").onclick = () => { saveDraft(); $("#review").classList.add("hidden"); $("#home").classList.remove("hidden"); loadHome().catch(fail); };
+$("#buildBtn").onclick = buildPage;
+$("#byPriority").onchange = () => { saveDraft(); openReview(S.account, true); };
+$("#tabNeeds").onclick = () => setFilter("needs");
+$("#tabAll").onclick = () => setFilter("all");
+
+// drag & drop anywhere in the window
+let dragDepth = 0;
+const drop = $("#drop");
+window.addEventListener("dragenter", (e) => { e.preventDefault(); dragDepth++; drop.classList.add("over"); });
+window.addEventListener("dragleave", (e) => { e.preventDefault(); if (--dragDepth <= 0) { dragDepth = 0; drop.classList.remove("over"); } });
+window.addEventListener("dragover", (e) => e.preventDefault());
+window.addEventListener("drop", (e) => {
+  e.preventDefault(); dragDepth = 0; drop.classList.remove("over");
+  const f = e.dataTransfer && e.dataTransfer.files[0];
+  if (f) importDialog({ file: f }, $("#review").classList.contains("hidden") ? null : S.account);
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && $("#modalRoot").innerHTML) closeModal();
+  if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && document.activeElement && document.activeElement.id === "upd") {
+    e.preventDefault(); $("#save").click();
+  }
+});
+setInterval(() => api("/api/ping").catch(() => {}), 20000);   // keeps the browser fallback alive
+loadHome().catch(fail);
+</script>
+</body>
+</html>

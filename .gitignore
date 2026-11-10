@@ -1,0 +1,18 @@
+# Customer case data - never commit or share these
+exports/
+notes/
+out/
+samples/
+# Build output
+app/.venv/
+app/build/
+app/dist/
+*.spec
+.DS_Store
+__pycache__/
+
+# Your organization profile (vendor name, Jira URL, case types). See profiles/example.json.
+profile.json
+app/profile.json
+# Team-specific docs (kept local)
+team/

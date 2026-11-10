@@ -1,0 +1,58 @@
+# Builds the desktop app for Windows and Mac on GitHub's machines, so you don't need a
+# Windows PC. Your organization profile (profile.json: vendor name, case types, Jira URL)
+# comes from the repository secret TAM_PROFILE, so it never sits in the code:
+#   gh secret set TAM_PROFILE < profile.json
+# Without the secret the apps build with neutral defaults. Push this folder to a PRIVATE GitHub repo (the .gitignore keeps customer
+# data out), then: Actions tab -> "Build apps" -> Run workflow. Download the installers
+# from the finished run's "Artifacts" section.
+name: Build apps
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Organization profile
+        shell: bash
+        env:
+          TAM_PROFILE: ${{ secrets.TAM_PROFILE }}
+        run: |
+          if [ -n "$TAM_PROFILE" ]; then printf '%s' "$TAM_PROFILE" > profile.json; echo "Profile added";
+          else echo "No TAM_PROFILE secret: building with neutral defaults"; fi
+      - name: Inno Setup
+        shell: pwsh
+        run: if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) { choco install innosetup -y --no-progress }
+      - name: Build
+        shell: cmd
+        run: app\build_windows.bat
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TAM Case Review - Windows
+          path: app/dist/TAM Case Review Setup.exe
+
+  mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Organization profile
+        env:
+          TAM_PROFILE: ${{ secrets.TAM_PROFILE }}
+        run: |
+          if [ -n "$TAM_PROFILE" ]; then printf '%s' "$TAM_PROFILE" > profile.json; echo "Profile added";
+          else echo "No TAM_PROFILE secret: building with neutral defaults"; fi
+      - name: Build
+        run: bash app/build_mac.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TAM Case Review - Mac
+          path: app/dist/TAM Case Review.dmg

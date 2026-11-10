@@ -1,0 +1,28 @@
+{
+  "name": "Acme example",
+  "vendor": "Acme",
+  "jira_browse_url": "https://acme.atlassian.net/browse/%s",
+  "default_type": "Support",
+  "types": {
+    "Support": "#175cd3",
+    "Ask an Expert": "#6941c6",
+    "Professional Services": "#0e7090",
+    "Go Live Support": "#c01048",
+    "Health Check": "#93370d"
+  },
+  "type_aliases": {
+    "ps": "Professional Services"
+  },
+  "type_columns": [
+    "Success Package Request Type",
+    "Professional Services Type",
+    "Request type"
+  ],
+  "type_column_label": "Success Package Request Type or Professional Services Type",
+  "topics": {
+    "Reports": ["report", "export"],
+    "Integrations": ["connector", "integration", "api"]
+  },
+  "self_hosted_products": ["Acme Server"],
+  "version_label": "Acme Server versions"
+}
