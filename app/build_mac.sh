@@ -28,7 +28,7 @@ rm -rf build "dist/$NAME.app" "dist/$NAME.dmg"
   --osx-bundle-identifier com.tamtoolkit.casereview \
   --paths .. \
   --add-data "ui.html:." \
-  "${PROFILE_ARGS[@]}" \
+  ${PROFILE_ARGS[@]+"${PROFILE_ARGS[@]}"} \
   tam_app.py
 
 # Version number and a friendlier Finder description in the app's Info.plist.
