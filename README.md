@@ -202,6 +202,28 @@ newest file is used.
 `python3 tests/test_columns.py` checks that many column combinations still give a
 good review. Add a path to an export to also try random column mixes of that file.
 
+## Contract usage
+
+Some case types can be limited per contract year, set in the profile:
+`"contract_allowances": {"Ask an Expert": 80, "Go Live Support": 2}`. Other types are
+unlimited and aren't counted. Enter each account's contract start date once (in the app,
+**Contract**, or when adding a new account), and the review shows usage for the current
+contract year, which renews every year on that date:
+
+    Contract year March 1, 2026 – February 28, 2027: Ask an Expert 6 of 80 used, 74 left
+
+The count covers every export saved for the account, a case counting once. When the
+newest export has open cases only, a case that opened and closed between two exports
+can't be seen, so the counts read "at least". For exact counts, include closed cases in
+the ServiceNow list (*Active is true* OR *Opened on or after* the contract start). Closed
+cases are only counted here; "Resolved since" still lists just the ones closed since the
+previous export. Usage shows on the page, in the text version, in Terminal and in the app;
+"Before the call" flags a type with one or none left.
+
+Contract dates live in `contracts.json` in the data folder:
+`{"acme": {"start": "2026-03-01"}}`. Add `"included": {"Ask an Expert": 40}` to
+override the profile's numbers for one account.
+
 ## Files
 
 - `exports/<account>/` - your exports. The newest is this review; the one before

@@ -264,6 +264,78 @@ class ColumnCombinations(unittest.TestCase):
         self.assertEqual(cp.engineering(c), "Engineering")
         self.assertIsNone(cp.jira_url("UTF-8"))
 
+
+class ContractUsage(unittest.TestCase):
+    """Limited case types counted per contract year, across every saved export."""
+
+    def setUp(self):
+        cp.apply_profile(EXAMPLE_PROFILE)          # Ask an Expert: 80, Go Live Support: 2 per year
+        self.root = tempfile.mkdtemp(prefix="callprep-contract-")
+        cp.set_root(self.root)
+        self.folder = os.path.join(self.root, "exports", "acme")
+        os.makedirs(self.folder)
+
+    def tearDown(self):
+        shutil.rmtree(self.root, ignore_errors=True)
+
+    def export(self, day, rows):
+        """rows: (number, type, state, opened days before `day`)."""
+        path = os.path.join(self.folder, "acme_tickets-%s.csv" % day)
+        with open(path, "w", newline="", encoding="utf-8-sig") as fh:
+            w = csv.writer(fh)
+            w.writerow(["Number", "Short description", "State", "Opened", "Success Package Request Type"])
+            for number, kind, state, ago in rows:
+                opened = dt.datetime.combine(day - dt.timedelta(days=ago), dt.time(9))
+                w.writerow([number, "Case " + number, state, opened.strftime("%Y-%m-%d %H:%M:%S"), kind])
+
+    def test_contract_year(self):
+        start = dt.date(2025, 3, 1)
+        self.assertIsNone(cp.contract_year(start, dt.date(2025, 2, 28)))
+        self.assertEqual(cp.contract_year(start, dt.date(2026, 2, 28)), (dt.date(2025, 3, 1), dt.date(2026, 2, 28)))
+        self.assertEqual(cp.contract_year(start, dt.date(2026, 3, 1)), (dt.date(2026, 3, 1), dt.date(2027, 2, 28)))
+
+    def test_counts_across_exports_and_this_year_only(self):
+        today = TODAY
+        start = today - dt.timedelta(days=100)
+        # earlier export: an Ask an Expert case that closes (drops out) before the next export
+        self.export(today - dt.timedelta(days=14), [("CS0000201", "Ask an Expert", "Pending Acme", 20),
+                                                    ("CS0000202", "Go Live Support", "Pending Acme", 5)])
+        self.export(today, [("CS0000202", "Go Live Support", "Pending Acme", 19),
+                            ("CS0000203", "Ask an Expert", "Pending Customer", 3),
+                            ("CS0000204", "Ask an Expert", "Pending Acme", 150),     # before this contract year
+                            ("CS0000205", "", "Pending Acme", 2)])                   # Support: unlimited, not counted
+        cp.save_contract("acme", {"start": start.isoformat()})
+        u = cp.contract_usage("acme", today)
+        rows = {r["type"]: r for r in u["rows"]}
+        self.assertEqual(rows["Ask an Expert"]["cases"], ["CS0000201", "CS0000203"])
+        self.assertEqual(rows["Go Live Support"]["used"], 1)
+        self.assertFalse(u["exact"])                      # open cases only: a minimum
+        self.assertEqual(cp.usage_text(rows["Ask an Expert"], u["exact"]), "at least 2 of 80 used")
+        self.assertNotIn("Support", rows)
+
+    def test_exact_when_export_has_closed_cases_and_no_resolved_flood(self):
+        today = TODAY
+        self.export(today - dt.timedelta(days=7), [("CS0000301", "Go Live Support", "Pending Acme", 30)])
+        self.export(today, [("CS0000301", "Go Live Support", "Resolved", 37),         # closed since last export
+                            ("CS0000302", "Go Live Support", "Closed", 60),           # closed long ago
+                            ("CS0000303", "Go Live Support", "Pending Acme", 2)])
+        cp.save_contract("acme", {"start": (today - dt.timedelta(days=200)).isoformat()})
+        r = cp.load_review("acme")
+        row = next(x for x in r["usage"]["rows"] if x["type"] == "Go Live Support")
+        self.assertTrue(r["usage"]["exact"])
+        self.assertEqual(row["used"], 3)
+        self.assertEqual(cp.usage_text(row, True), "3 of 2 used, 1 over")
+        self.assertEqual([c["number"] for c in r["resolved"]], ["CS0000301"])   # not the old closed case
+        base, text = cp.write_outputs(r, {})
+        html = open(base + ".html", encoding="utf-8").read()
+        self.assertIn("Contract year", html)
+        self.assertIn("3 of 2 used, 1 over", text)
+        self.assertTrue(any("Go Live Support 3 of 2 used" in p for p in cp.prep_list(r, {})))
+
+    def test_no_contract_no_usage(self):
+        self.export(TODAY, [("CS0000401", "Ask an Expert", "Pending Acme", 3)])
+        self.assertIsNone(cp.load_review("acme")["usage"])
+
 def run_on_real_export(path, rounds=40):
     """Random column subsets of a real export (kept local: nothing is written outside a temp folder)."""
     rows = cp.read_xlsx(path) if path.lower().endswith((".xlsx", ".xlsm")) else cp.read_csv(path)

@@ -3,6 +3,7 @@
 /notes/
 /out/
 /samples/
+/contracts.json
 # The demo account is fictional and stays in the repo; only its generated pages are ignored
 demo/out/
 # Build output

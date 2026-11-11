@@ -70,6 +70,13 @@ The app tells you if your export is missing a recommended column ("Get more out 
 review" at the top of a review, then **Which columns?**). The command line prints the same
 tip under the case counts.
 
+## Counting contract usage
+
+If your profile limits some case types per contract year, the review counts them since
+each account's contract start. Your list must then also include **closed** cases, or the
+counts are only minimums ("at least"). Add a condition group: *Active is true* **OR**
+*Opened on or after* the contract start date. Closed cases are only used for the count.
+
 ## Your organization's profile
 
 Names that differ between companies live in a small settings file, `profile.json`, not
@@ -83,6 +90,7 @@ in the code. Start from [profiles/example.json](../profiles/example.json):
 | `type_columns`, `type_column_label` | which export columns hold the case type |
 | `topics` | keyword focus areas, used when there's no Component column |
 | `self_hosted_products` | products whose cases show Product Version |
+| `contract_allowances` | case types limited per contract year, e.g. `{"Ask an Expert": 80, "Go Live Support": 2}` |
 
 - **Command line:** put `profile.json` next to `callprep.py`, or point `TAM_PROFILE` at it.
 - **Desktop app:** the build scripts bundle `profile.json` from the toolkit folder. GitHub

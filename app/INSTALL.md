@@ -49,6 +49,12 @@ Nothing else to install, no Terminal.
 **Waiting on us** (home screen, named after your company) is an internal list of every case waiting on
 us, across all your accounts.
 
+**Contract** (review screen) holds the account's contract start date. Enter it once (or
+when you add a new account) and the review counts the limited case types for the current
+contract year. "At least" means your ServiceNow list leaves out closed cases: add
+*Active is true* OR *Opened on or after* your contract start to the list's conditions for
+an exact count.
+
 ## Where your data is
 
 `Documents/TAM Case Review`, in three folders: `exports` (your ServiceNow files), `notes`

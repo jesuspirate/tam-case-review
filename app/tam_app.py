@@ -153,6 +153,28 @@ def case_json(c, r, notes):
     }
 
 
+def usage_json(u):
+    if not u:
+        return None
+    return {"first": iso(u["first"]), "last": iso(u["last"]), "exact": u["exact"],
+            "rows": [dict(row, text=cp.usage_text(row, u["exact"])) for row in u["rows"]]}
+
+
+def set_contract(account, start):
+    """Save (or with a blank start, remove) an account's contract start date."""
+    account = safe_account(account)
+    if not start:
+        cp.save_contract(account, None)
+        return {"ok": True}
+    try:
+        dt.date.fromisoformat(start)
+    except ValueError:
+        raise ValueError("The contract start date doesn't look right: %s" % start)
+    contract = dict(cp.load_contracts().get(account) or {}, start=start)
+    cp.save_contract(account, contract)
+    return {"ok": True}
+
+
 def review_json(account, by_priority=False):
     r = cp.load_review(account, by_action=not by_priority)
     notes = cp.load_notes(account)
@@ -167,6 +189,8 @@ def review_json(account, by_priority=False):
         "groups": [{"type": t, "color": cp.type_color(t), "count": len(cs)} for t, cs in r["groups"]],
         "has_state": "state" in r["mapping"],
         "missing": [{"column": col, "why": why} for col, why in cp.missing_columns(r["mapping"], r["open_cases"])],
+        "contract": cp.load_contracts().get(account),
+        "usage": usage_json(r.get("usage")),
         "cases": [case_json(c, r, notes) for c in r["ordered"]],
     }
 
@@ -344,7 +368,8 @@ def route(method, path, q, raw):
         accounts = [account_summary(a) for a in cp.list_accounts()]
         return {"data_dir": cp.ROOT, "accounts": accounts, "version": VERSION,
                 "native": WINDOW[0] is not None, "platform": sys.platform,
-                "vendor": cp.VENDOR, "profile": cp.PROFILE_NAME}
+                "vendor": cp.VENDOR, "profile": cp.PROFILE_NAME,
+                "allowances": cp.CONTRACT_ALLOWANCES}
     if path == "/api/review":
         return review_json(q["account"], q.get("by_priority") in ("1", True))
     if method != "POST":
@@ -356,6 +381,8 @@ def route(method, path, q, raw):
         with open(src, "rb") as fh:
             data = fh.read()
         return import_export(os.path.basename(src), data, q["account"], q.get("date"))
+    if path == "/api/contract":
+        return set_contract(q["account"], q.get("start") or "")
     if path == "/api/note":
         save_update(q["account"], q["number"], q.get("text"), q.get("line"))
         return {"ok": True}

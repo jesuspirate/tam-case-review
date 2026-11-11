@@ -59,6 +59,7 @@ PROFILE_KEYS = {"vendor": "VENDOR", "jira_browse_url": "JIRA_BROWSE_URL", "defau
                 "types": "TYPES", "type_aliases": "TYPE_ALIASES", "type_columns": "TYPE_COLUMNS",
                 "type_column_label": "TYPE_COLUMN_LABEL", "topics": "TOPICS",
                 "self_hosted_products": "SELF_HOSTED_PRODUCTS", "version_label": "VERSION_LABEL",
+                "contract_allowances": "CONTRACT_ALLOWANCES",
                 "show_tenant_on_page": "PAGE_SHOW_TENANT", "show_area_on_page": "PAGE_SHOW_AREA",
                 "show_engineering_on_page": "PAGE_SHOW_ENGINEERING", "show_group_on_page": "SHOW_GROUP_ON_PAGE"}
 PROFILE_NAME = None
@@ -134,6 +135,8 @@ TOPICS = {}
 # show Product Version under the issue; for the others, Sub-Component is recommended.
 SELF_HOSTED_PRODUCTS = []
 TYPE_COLUMN_LABEL = "Request type"   # how the tip names the case-type column(s)
+# Case types limited per contract year, e.g. {"Ask an Expert": 80}. Everything else is unlimited.
+CONTRACT_ALLOWANCES = {}
 VERSION_LABEL = "product versions"
 
 # Column names each field is read from, best first: a field takes the column that matches
@@ -1267,7 +1270,7 @@ def section_heading(text, count, color):
             % (F, color, escape(text), MUTED, count))
 
 
-def render_html(title, subtitle, as_of, prev_date, groups, resolved, notes, by_action=False):
+def render_html(title, subtitle, as_of, prev_date, groups, resolved, notes, by_action=False, usage=None):
     open_cases = [c for _, cs in groups for c in cs]
     states_known = any(c["state"] for c in open_cases)
     show_who = states_known or any(c["contact"] or c["owner"] or (SHOW_GROUP_ON_PAGE and c["group"])
@@ -1297,6 +1300,24 @@ def render_html(title, subtitle, as_of, prev_date, groups, resolved, notes, by_a
     if len(groups) > TYPE_TILES_MAX:   # too many types for boxes: one line instead
         h.append('<div style="%sfont-size:10pt;color:%s;margin:0 0 6px;">%s</div>' % (F, MUTED, " &middot; ".join(
             '<span style="color:%s;">&#9632;</span> %d %s' % (type_color(n), len(cs), escape(n)) for n, cs in groups)))
+
+    if usage:
+        h.append('<div style="%sfont-size:10.5pt;color:%s;margin:8px 0 2px;"><b style="color:%s;">Contract year</b> '
+                 '<span style="color:%s;">%s</span></div>' % (F, INK, NAVY, MUTED, escape(usage_period(usage))))
+        h.append('<table style="border-collapse:collapse;margin:2px 0 10px;">')
+        for row in usage["rows"]:
+            pct = min(100, round(100.0 * row["used"] / row["included"])) if row["included"] else 0
+            bar = ('<td style="padding:0 0 0 10px;width:160px;"><table style="border-collapse:collapse;width:160px;"><tr>'
+                   '<td style="width:%d%%;height:8px;padding:0;background:%s;font-size:1pt;line-height:1px;">&nbsp;</td>'
+                   '<td style="height:8px;padding:0;background:#eaecf0;font-size:1pt;line-height:1px;">&nbsp;</td>'
+                   '</tr></table></td>' % (max(pct, 1), NAVY if (row["left"] or 0) >= 0 else CRITICAL)
+                   if row["included"] else "<td></td>")
+            h.append('<tr><td style="%sfont-size:10.5pt;color:%s;padding:2px 12px 2px 0;white-space:nowrap;">'
+                     '<span style="color:%s;">&#9632;</span> %s</td>%s'
+                     '<td style="%sfont-size:10.5pt;color:%s;padding:2px 0 2px 12px;white-space:nowrap;">%s</td></tr>'
+                     % (F, INK, type_color(row["type"]), escape(row["type"]), bar, F, INK,
+                        escape(usage_text(row, usage["exact"]))))
+        h.append("</table>")
 
     for n, topic in topic_callouts(open_cases):
         h.append('<div style="%sfont-size:10.5pt;color:%s;background:#f2f4f7;border-left:4px solid %s;'
@@ -1357,7 +1378,7 @@ def write_csv(path, title, groups, notes, as_of):
                            + ([engineering(c) or ""] if PAGE_SHOW_ENGINEERING and has_eng else []))
 
 
-def render_text(title, as_of, prev_date, groups, resolved, notes, new_ids, by_action):
+def render_text(title, as_of, prev_date, groups, resolved, notes, new_ids, by_action, usage=None):
     """Plain-text version for tools that drop tables (Gainsight notes, email, Slack)."""
     open_cases = [c for _, cs in groups for c in cs]
     states_known = any(c["state"] for c in open_cases)
@@ -1374,6 +1395,10 @@ def render_text(title, as_of, prev_date, groups, resolved, notes, new_ids, by_ac
     if prev_date:
         summary.append("%d resolved since %s" % (len(resolved), short_date(prev_date)))
     out += [" · ".join(summary), ""]
+    if usage:
+        out.append("CONTRACT YEAR %s" % usage_period(usage).upper())
+        out += ["• %s: %s" % (row["type"], usage_text(row, usage["exact"])) for row in usage["rows"]]
+        out.append("")
     if old:
         out.append("Open %d+ days: %s" % (AGE_WARN_DAYS, ", ".join(
             "%s (%s)" % (c["number"], days_text(d)) for d, c in old)))
@@ -1449,6 +1474,112 @@ def open_file(path):
 
 
 # --- commands ---------------------------------------------------------------
+# --- contract usage ---------------------------------------------------------
+# Some case types are limited per contract year (profile: "contract_allowances", for example
+# {"Ask an Expert": 80, "Go Live Support": 2}); everything else is unlimited and not counted.
+# The TAM sets each account's contract start date (contracts.json in the data folder):
+#   {"acme": {"start": "2026-03-01"}}
+# An account can override the allowances: {"acme": {"start": "2026-03-01", "included": {"Ask an Expert": 40}}}
+def contracts_path():
+    return os.path.join(ROOT, "contracts.json")
+
+
+def load_contracts():
+    import json
+    try:
+        with open(contracts_path(), encoding="utf-8") as fh:
+            return json.load(fh)
+    except (OSError, ValueError):
+        return {}
+
+
+def save_contract(account, contract):
+    """Set (or with None, remove) an account's contract."""
+    import json
+    contracts = load_contracts()
+    if contract:
+        contracts[account] = contract
+    else:
+        contracts.pop(account, None)
+    os.makedirs(ROOT, exist_ok=True)
+    with open(contracts_path(), "w", encoding="utf-8") as fh:
+        json.dump(contracts, fh, indent=2, sort_keys=True)
+
+
+def _anniversary(start, years):
+    try:
+        return start.replace(year=start.year + years)
+    except ValueError:                    # Feb 29 start in a non-leap year
+        return start.replace(year=start.year + years, day=28)
+
+
+def contract_year(start, on):
+    """(first day, last day) of the contract year that contains `on`, or None before the start."""
+    if on < start:
+        return None
+    years = on.year - start.year
+    if _anniversary(start, years) > on:
+        years -= 1
+    first = _anniversary(start, years)
+    return first, _anniversary(start, years + 1) - dt.timedelta(days=1)
+
+
+def contract_usage(account, on=None):
+    """Limited case types opened in the current contract year, counted across every saved export
+    (a case counts once). exact is True when the newest export includes closed cases; otherwise
+    cases that opened and closed between two exports can't be seen, so the counts are minimums."""
+    contract = load_contracts().get(account) or {}
+    try:
+        start = dt.date.fromisoformat(contract["start"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    allowances = contract.get("included") or CONTRACT_ALLOWANCES
+    period = contract_year(start, on or dt.date.today())
+    if not allowances or not period:
+        return None
+    first, last = period
+    files = exports_for(account)
+    seen, exact = {}, False
+    for i, path in enumerate(files):
+        try:
+            cases, _ = load_export(path)
+        except SystemExit:
+            continue
+        for c in cases:
+            seen[c["number"]] = c                 # newest export wins (state, type)
+        if i == len(files) - 1:
+            exact = any(is_closed(c) for c in cases)
+    rows = []
+    for name, included in allowances.items():
+        want = normalize_type(name).lower()
+        used = sorted((c for c in seen.values() if c["type"].lower() == want and c["opened_dt"]
+                       and first <= c["opened_dt"].date() <= last), key=lambda c: c["opened_dt"])
+        try:
+            included = int(included) if included not in (None, "") else None
+        except (TypeError, ValueError):
+            included = None
+        rows.append({"type": normalize_type(name), "used": len(used), "included": included or None,
+                     "left": (included - len(used)) if included else None,
+                     "cases": [c["number"] for c in used],
+                     "open": sum(1 for c in used if not is_closed(c))})
+    return {"start": start, "first": first, "last": last, "exact": exact, "rows": rows}
+
+
+def usage_text(row, exact=True):
+    """'6 of 80 used, 74 left' / 'at least 6 of 80 used' / '3 of 2 used, 1 over' / '3 used'."""
+    used = ("%d" if exact else "at least %d") % row["used"]
+    if not row["included"]:
+        return "%s used" % used
+    text = "%s of %d used" % (used, row["included"])
+    if row["left"] is not None and row["left"] < 0:
+        return text + ", %d over" % -row["left"]
+    return text + (", %d left" % row["left"] if exact else "")
+
+
+def usage_period(u):
+    return "%s – %s" % (long_date(u["first"]), long_date(u["last"]))
+
+
 def load_review(account, export=None, by_action=True):
     """Everything a review needs, as a dict. Shared by the command line and the desktop app."""
     files = exports_for(account)
@@ -1465,12 +1596,16 @@ def load_review(account, export=None, by_action=True):
     cases, mapping = load_export(current)
     open_cases = [c for c in cases if not is_closed(c)]
     open_ids = {c["number"] for c in open_cases}
-    resolved = [c for c in cases if is_closed(c)]
+    resolved = []
 
     prev_cases, prev_date = None, None
     if previous:
         prev_date = export_date(previous)
         prev_cases = {c["number"]: c for c in load_export(previous)[0] if not is_closed(c)}
+        # Closed since the previous export: open last time, or opened after it. An export that
+        # includes closed cases (for contract counts) doesn't flood the list with old ones.
+        resolved = [c for c in cases if is_closed(c) and (c["number"] in prev_cases or
+                    (c["opened_dt"] and c["opened_dt"].date() > prev_date))]
         seen = {c["number"] for c in resolved}
         resolved += [c for n, c in prev_cases.items() if n not in open_ids and n not in seen]
     new_ids = {n for n in open_ids if prev_cases is not None and n not in prev_cases}
@@ -1486,6 +1621,7 @@ def load_review(account, export=None, by_action=True):
     groups = grouped(open_cases, by_action)
     ordered = [c for _, cs in groups for c in cs]
     return {"account": account, "current": current, "previous": previous, "mapping": mapping,
+            "usage": contract_usage(account, as_of),
             "open_cases": open_cases, "resolved": resolved, "prev_cases": prev_cases,
             "prev_date": prev_date, "new_ids": new_ids, "state_was": state_was, "as_of": as_of,
             "title": title, "subtitle": subtitle, "groups": groups, "ordered": ordered,
@@ -1501,10 +1637,10 @@ def write_outputs(r, notes):
                                              "" if r["by_action"] else "-by-priority"))
     with open(base + ".html", "w", encoding="utf-8") as fh:
         fh.write(render_html(r["title"], r["subtitle"], as_of, r["prev_date"], r["groups"],
-                             r["resolved"], notes, r["by_action"]))
+                             r["resolved"], notes, r["by_action"], r.get("usage")))
     write_csv(base + ".csv", r["title"], r["groups"], notes, as_of)
     text = render_text(r["title"], as_of, r["prev_date"], r["groups"], r["resolved"], notes,
-                       r["new_ids"], r["by_action"])
+                       r["new_ids"], r["by_action"], r.get("usage"))
     with open(base + ".txt", "w", encoding="utf-8") as fh:
         fh.write(text)
     return base, text
@@ -1537,6 +1673,14 @@ def prep_list(r, notes):
     missing = [c["number"] for c in ordered if not notes.get(c["number"])]
     if missing:
         prep.append("no status update yet: %s" % ", ".join(missing))
+    u = r.get("usage")
+    if u:
+        for row in u["rows"]:
+            if row["left"] is not None and row["left"] <= 1:
+                prep.append("contract: %s %s" % (row["type"], usage_text(row, u["exact"])))
+        if not u["exact"]:
+            prep.append("contract usage is a minimum: this export has open cases only. Include closed cases "
+                        "in the ServiceNow list for an exact count")
     return prep
 
 
@@ -1552,6 +1696,10 @@ def review(account, export=None, update=True, open_page=True, by_action=True):
         print("  %d new · %d resolved · %d changed status"
               % (len(r["new_ids"]), len(r["resolved"]), len(r["state_was"])))
     print("  " + " · ".join("%d %s" % (len(cs), name) for name, cs in r["groups"]))
+    if r.get("usage"):
+        u = r["usage"]
+        print("  Contract year %s: %s" % (usage_period(u), " · ".join(
+            "%s %s" % (row["type"], usage_text(row, u["exact"])) for row in u["rows"])))
     if "state" not in r["mapping"]:
         print("  No State column in this export, so the page can't show whose move it is.")
     missing = missing_columns(r["mapping"], r["open_cases"])

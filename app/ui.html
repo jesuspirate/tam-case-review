@@ -92,6 +92,12 @@ button { font: inherit; cursor: pointer; }
 .review { display: grid; grid-template-columns: 300px 1fr; flex: 1; min-height: 0; }
 .tip { background: var(--accent-soft); color: var(--ink); font-size: 13px; padding: 8px 22px; border-bottom: 1px solid var(--line); }
 .tip { flex: none; }
+.usage { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; padding: 8px 22px;
+  background: var(--panel); border-bottom: 1px solid var(--line); font-size: 13px; }
+.usage .u { display: inline-flex; align-items: center; gap: 8px; }
+.usage .meter { width: 90px; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.usage .meter i { display: block; height: 100%; background: var(--accent); }
+.usage .meter i.over { background: var(--red); }
 a.jira { color: var(--accent); font-weight: 650; text-decoration: none; }
 a.jira:hover { text-decoration: underline; }
 .flag { display: inline-block; margin: 0 6px 4px 0; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600;
@@ -230,10 +236,12 @@ label.fld { display: block; font-weight: 600; font-size: 13px; margin: 12px 0 6p
     <label class="check" title="Each section in plain priority order instead of split by whose move it is">
       <input type="checkbox" id="byPriority"> Plain priority order</label>
     <button class="btn ghost theme-btn" data-theme-btn title="Theme">◐</button>
+    <button class="btn hidden" id="contractBtn" title="Contract start date, for case types limited per contract year">Contract</button>
     <button class="btn" id="addExportBtn">Add export</button>
     <button class="btn primary" id="buildBtn">Build page ▸</button>
   </div>
   <div class="tip hidden" id="rvTip"></div>
+  <div class="usage hidden" id="rvUsage"></div>
   <div class="review">
     <aside class="side">
       <div class="tabs">
@@ -359,7 +367,10 @@ function importDialog(source, presetAccount) {
     '<div class="mb">' +
     '<label class="fld">Which account is this for?</label>' +
     '<select class="inp" id="impAcct">' + opts + '<option value="__new"' + (guess ? "" : " selected") + '>New account…</option></select>' +
-    '<div id="newWrap"><label class="fld">New account name</label><input class="inp" id="impNew" placeholder="e.g. acme"></div>' +
+    '<div id="newWrap"><label class="fld">New account name</label><input class="inp" id="impNew" placeholder="e.g. acme">' +
+    (allowanceNames().length ? '<label class="fld">Contract start date <span class="muted" style="font-weight:400">(optional)</span></label>' +
+      '<input class="inp" type="date" id="impContract"><div class="muted small" style="margin-top:6px">Counts ' +
+      esc(allowanceText()) + ' per contract year. You can set it later with <b>Contract</b>.</div>' : "") + "</div>" +
     '<label class="fld">Date the export was taken</label><input class="inp" type="date" id="impDate" value="' + guessDate(name) + '">' +
     '<div class="muted small" style="margin-top:6px">Each review compares the newest export with the one before it.</div>' +
     "</div>" +
@@ -381,6 +392,8 @@ function importDialog(source, presetAccount) {
           } else {
             res = await api("/api/import-path", { path: source.path, account, date });
           }
+          const cstart = sel.value === "__new" && m.querySelector("#impContract") ? m.querySelector("#impContract").value : "";
+          if (cstart) await api("/api/contract", { account: res.account, start: cstart });
           closeModal();
           toast(res.duplicate ? "That export was already added (" + res.saved_as + ")"
                               : "Added " + res.open + " open cases to " + res.account.toUpperCase());
@@ -437,6 +450,54 @@ function showColumns(missing) {
     '<div class="mf"><button class="btn primary" id="colDone">Got it</button></div>', (m) => { m.querySelector("#colDone").onclick = closeModal; });
 }
 
+function allowanceNames() { return Object.keys((S.home && S.home.allowances) || {}); }
+function allowanceText() {
+  const a = (S.home && S.home.allowances) || {};
+  return Object.keys(a).map((k) => k + " (" + a[k] + ")").join(" and ");
+}
+function renderUsage() {
+  const rv = S.rv, bar = $("#rvUsage");
+  $("#contractBtn").classList.toggle("hidden", !allowanceNames().length && !rv.contract);
+  if (rv.usage) {
+    const u = rv.usage;
+    bar.innerHTML = '<b>Contract year</b> <span class="muted">' + fmt(u.first) + ", " + u.first.slice(0, 4) + " – " + fmt(u.last) + ", " + u.last.slice(0, 4) + "</span>" +
+      u.rows.map((r) => {
+        const pct = r.included ? Math.min(100, Math.round(100 * r.used / r.included)) : 0;
+        return '<span class="u" title="' + esc(r.cases.join(", ") || "none") + '"><b>' + esc(r.type) + "</b>" +
+          (r.included ? '<span class="meter"><i class="' + (r.left < 0 ? "over" : "") + '" style="width:' + Math.max(pct, 2) + '%"></i></span>' : "") +
+          esc(r.text) + "</span>";
+      }).join("") +
+      (u.exact ? "" : ' <button class="btn link" id="whyMin">Why "at least"?</button>');
+    bar.classList.remove("hidden");
+    const why = $("#whyMin");
+    if (why) why.onclick = () => modal('<div class="mh"><h2>Why "at least"?</h2></div><div class="mb">' +
+      "<p>Your ServiceNow export only has <b>open</b> cases, so a case that opened and closed between two exports never shows up here. The count is a minimum.</p>" +
+      "<p>For an exact count, include closed cases in the list: add the condition <b>Active is true</b> <i>or</i> <b>Opened on or after</b> your contract start date (or remove the Active filter). Closed cases don't clutter the review; they're only counted here.</p>" +
+      '</div><div class="mf"><button class="btn primary" id="whyOk">Got it</button></div>', (m) => { m.querySelector("#whyOk").onclick = closeModal; });
+  } else if (allowanceNames().length && !rv.contract) {
+    bar.innerHTML = '<span class="muted">Track ' + esc(allowanceText()) + ' per contract year:</span> <button class="btn link" id="setContract">Set the contract start date</button>';
+    bar.classList.remove("hidden");
+    $("#setContract").onclick = contractDialog;
+  } else bar.classList.add("hidden");
+}
+function contractDialog() {
+  const c = S.rv.contract || {};
+  modal('<div class="mh"><h2>Contract</h2><div class="muted small" style="margin-top:4px">' + esc(S.rv.title) + "</div></div>" +
+    '<div class="mb"><label class="fld">Contract start date</label><input class="inp" type="date" id="cStart" value="' + esc(c.start || "") + '">' +
+    '<div class="muted small" style="margin-top:8px">Counts ' + esc(allowanceText() || "limited case types") +
+    " opened in each contract year, starting on this date and renewing every year. Saved with your data, so you only enter it once.</div></div>" +
+    '<div class="mf">' + (c.start ? '<button class="btn ghost" id="cRemove" style="margin-right:auto">Remove</button>' : "") +
+    '<button class="btn" id="cCancel">Cancel</button><button class="btn primary" id="cSave">Save</button></div>', (m) => {
+      const save = async (start) => {
+        try { await api("/api/contract", { account: S.account, start }); closeModal(); await openReview(S.account, true); toast(start ? "Contract saved" : "Contract removed"); }
+        catch (e) { fail(e); }
+      };
+      m.querySelector("#cCancel").onclick = closeModal;
+      m.querySelector("#cSave").onclick = () => { const v = m.querySelector("#cStart").value; if (!v) return toast("Pick the contract start date.", true); save(v); };
+      const rm = m.querySelector("#cRemove"); if (rm) rm.onclick = () => save("");
+    });
+}
+
 /* ---------- review ---------- */
 async function openReview(account, keep) {
   try {
@@ -456,6 +517,7 @@ async function openReview(account, keep) {
   let sub = k.open + " open · export " + fmt(rv.as_of);
   if (k.compared) sub += " vs " + fmt(rv.prev_date) + " · " + k.new + " new · " + k.resolved + " resolved · " + k.changed + " changed status";
   $("#rvSub").textContent = sub;
+  renderUsage();
   const tip = $("#rvTip");
   if (rv.missing.length) {
     const cols = rv.missing.map((m) => m.column);
@@ -681,6 +743,7 @@ document.querySelectorAll("[data-theme-btn]").forEach((b) => b.onclick = () => {
 });
 applyTheme(getTheme());
 $("#addExportBtn").onclick = () => chooseFile(S.account);
+$("#contractBtn").onclick = contractDialog;
 $("#settingsBtn").onclick = settings;
 $("#acrossBtn").onclick = async () => {
   try { await api("/api/across", {}); toast("Opened in your browser"); } catch (e) { fail(e); }
